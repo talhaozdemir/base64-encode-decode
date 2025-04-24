@@ -1,101 +1,180 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Base64 Tool</title>
-  <style>
-    body { font-family: sans-serif; padding: 20px; background: #f9f9f9; }
-    textarea { width: 100%; height: 150px; margin-top: 10px; font-family: monospace; }
-    button { margin-top: 10px; padding: 8px 16px; }
-    input[type="file"] { margin-top: 10px; }
-    .section { margin-bottom: 30px; display: none; }
-    .active { display: block; }
-  </style>
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Base64 Tool</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 20px;
+        background: #f9f9f9;
+      }
+      textarea {
+        width: 100%;
+        height: 150px;
+        margin-top: 10px;
+        font-family: monospace;
+      }
+      button {
+        margin-top: 10px;
+        padding: 8px 16px;
+      }
+      input[type="file"],
+      input[type="text"] {
+        margin-top: 10px;
+        padding: 6px;
+      }
+      .section {
+        margin-bottom: 30px;
+        display: none;
+        border: 1px dashed #ccc;
+        padding: 16px;
+        border-radius: 6px;
+        background: #fff;
+      }
+      .active {
+        display: block;
+      }
+      .dropzone {
+        border: 2px dashed #aaa;
+        padding: 20px;
+        text-align: center;
+        cursor: pointer;
+      }
+      .dropzone.dragover {
+        border-color: #000;
+        background: #eef;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🔁 Base64 Encode / Decode Tool</h1>
 
-  <h1>🔁 Base64 Encode / Decode Tool</h1>
+    <label for="mode">Mode:</label>
+    <select id="mode">
+      <option value="encode">Encode (File → Base64)</option>
+      <option value="decode">Decode (Base64 → File)</option>
+    </select>
 
-  <label for="mode">Mode:</label>
-  <select id="mode">
-    <option value="encode">Encode (File → Base64)</option>
-    <option value="decode">Decode (Base64 → File)</option>
-  </select>
+    <!-- Encode Section -->
+    <div id="encodeSection" class="section active">
+      <h2>📤 File → Base64</h2>
+      <div id="dropzone" class="dropzone">Drag & Drop File Here or Click Below</div>
+      <input type="file" id="fileInput" />
+      <textarea id="base64Output" placeholder="Base64 output will appear here..."></textarea>
+      <button onclick="navigator.clipboard.writeText(base64Output.value)">
+        📋 Copy to Clipboard
+      </button>
+    </div>
 
-  <div id="encodeSection" class="section active">
-    <h2>📤 File → Base64</h2>
-    <input type="file" id="fileInput">
-    <textarea id="base64Output" placeholder="Base64 output will appear here..."></textarea>
-  </div>
+    <!-- Decode Section -->
+    <div id="decodeSection" class="section">
+      <h2>📥 Base64 → File</h2>
+      <textarea
+        id="base64Input"
+        placeholder="Paste base64 here (with or without data: prefix)..."
+      ></textarea>
+      <input type="text" id="fileNameInput" placeholder="Optional filename (e.g. myfile.zip)" />
+      <button id="downloadBtn">Download Decoded File</button>
+      <a id="downloadLink" style="display: none"></a>
+    </div>
 
-  <div id="decodeSection" class="section">
-    <h2>📥 Base64 → File</h2>
-    <textarea id="base64Input" placeholder="Paste base64 here (with or without data: prefix)..."></textarea>
-    <button id="downloadBtn">Download Decoded File</button>
-    <a id="downloadLink" style="display:none;"></a>
-  </div>
+    <script>
+      const modeSelect = document.getElementById("mode");
+      const encodeSection = document.getElementById("encodeSection");
+      const decodeSection = document.getElementById("decodeSection");
 
-  <script>
-    const modeSelect = document.getElementById("mode");
-    const encodeSection = document.getElementById("encodeSection");
-    const decodeSection = document.getElementById("decodeSection");
+      const fileInput = document.getElementById("fileInput");
+      const dropzone = document.getElementById("dropzone");
+      const base64Output = document.getElementById("base64Output");
 
-    const fileInput = document.getElementById("fileInput");
-    const base64Output = document.getElementById("base64Output");
-    const base64Input = document.getElementById("base64Input");
-    const downloadBtn = document.getElementById("downloadBtn");
-    const downloadLink = document.getElementById("downloadLink");
+      const base64Input = document.getElementById("base64Input");
+      const fileNameInput = document.getElementById("fileNameInput");
+      const downloadBtn = document.getElementById("downloadBtn");
+      const downloadLink = document.getElementById("downloadLink");
 
-    modeSelect.addEventListener("change", () => {
-      const mode = modeSelect.value;
-      encodeSection.classList.toggle("active", mode === "encode");
-      decodeSection.classList.toggle("active", mode === "decode");
-    });
+      // Mode switch
+      modeSelect.addEventListener("change", () => {
+        const mode = modeSelect.value;
+        encodeSection.classList.toggle("active", mode === "encode");
+        decodeSection.classList.toggle("active", mode === "decode");
+      });
 
-    // Encode
-    fileInput.addEventListener("change", () => {
-      const file = fileInput.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = () => {
-        base64Output.value = reader.result;
-      };
-      reader.readAsDataURL(file);
-    });
-
-    // Decode
-    downloadBtn.addEventListener("click", () => {
-      let fullData = base64Input.value.trim();
-      if (!fullData) return alert("Please enter a base64 string.");
-
-      let base64Data = fullData;
-      let fileExt = "bin"; // fallback
-
-      const match = fullData.match(/^data:(.+?);base64,(.+)$/);
-      if (match) {
-        const mime = match[1];
-        base64Data = match[2];
-
-        if (mime.includes("zip")) fileExt = "zip";
-        else if (mime.includes("jpeg")) fileExt = "jpg";
-        else if (mime.includes("png")) fileExt = "png";
-        else if (mime.includes("svg")) fileExt = "svg";
-        else if (mime.includes("plain")) fileExt = "txt";
-        else if (mime.includes("pdf")) fileExt = "pdf";
-        else fileExt = mime.split("/")[1] || "bin";
+      // Encode file to base64
+      function handleFile(file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          base64Output.value = reader.result;
+        };
+        reader.readAsDataURL(file);
       }
 
-      const byteCharacters = atob(base64Data);
-      const byteArray = new Uint8Array([...byteCharacters].map(c => c.charCodeAt(0)));
-      const blob = new Blob([byteArray]);
-      const url = URL.createObjectURL(blob);
+      fileInput.addEventListener("change", () => {
+        if (fileInput.files[0]) {
+          handleFile(fileInput.files[0]);
+        }
+      });
 
-      downloadLink.href = url;
-      downloadLink.download = `decoded_file.${fileExt}`;
-      downloadLink.click();
-    });
-  </script>
+      // Drag and drop
+      dropzone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropzone.classList.add("dragover");
+      });
+      dropzone.addEventListener("dragleave", () => {
+        dropzone.classList.remove("dragover");
+      });
+      dropzone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropzone.classList.remove("dragover");
+        const file = e.dataTransfer.files[0];
+        if (file) handleFile(file);
+      });
+      dropzone.addEventListener("click", () => {
+        fileInput.click();
+      });
 
-</body>
+      // Decode base64 to file
+      downloadBtn.addEventListener("click", () => {
+        let fullData = base64Input.value.trim();
+        if (!fullData) return alert("Please enter a base64 string.");
+
+        let base64Data = fullData;
+        let fileExt = "bin";
+
+        const match = fullData.match(/^data:(.+?);base64,(.+)$/);
+        if (match) {
+          const mime = match[1];
+          base64Data = match[2];
+
+          console.log(mime);
+
+          if (mime.includes("zip")) fileExt = "zip";
+          else if (mime.includes("jpeg")) fileExt = "jpg";
+          else if (mime.includes("png")) fileExt = "png";
+          else if (mime.includes("svg")) fileExt = "svg";
+          else if (mime.includes("plain")) fileExt = "txt";
+          else if (mime.includes("pdf")) fileExt = "pdf";
+          else fileExt = mime.split("/")[1] || "bin";
+
+          console.log(fileExt);
+        }
+
+        try {
+          const byteCharacters = atob(base64Data);
+          const byteArray = new Uint8Array([...byteCharacters].map((c) => c.charCodeAt(0)));
+          const blob = new Blob([byteArray]);
+          const url = URL.createObjectURL(blob);
+
+          const customName = fileNameInput.value.trim();
+          const finalName = `${customName}.${fileExt}` || `decoded_file.${fileExt}`;
+
+          downloadLink.href = url;
+          downloadLink.download = finalName;
+          downloadLink.click();
+        } catch (e) {
+          alert("Invalid base64 string.");
+        }
+      });
+    </script>
+  </body>
 </html>
